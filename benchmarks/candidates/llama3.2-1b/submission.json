@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.1.0",
+  "profiler_version": "adtc-profiler 0.1.0",
+  "submission": {
+    "team_id": "adtc-agri-bench",
+    "domain": "agriculture",
+    "language_scope": [
+      "en"
+    ],
+    "african_alpha_claim": false,
+    "budget_laptop_claim": true,
+    "submitter": {
+      "name": "bench",
+      "email": "bench@local.dev",
+      "github_handle": "bench"
+    },
+    "cross_disciplinary_pairing": {
+      "discipline": "agriculture",
+      "load_bearing": true,
+      "description": "Baseline throughput/RAM sweep for model selection."
+    },
+    "test_prompts": [
+      {
+        "prompt_id": "tp_001",
+        "prompt": "What is the recommended planting spacing for maize in a rain-fed smallholder farm?"
+      },
+      {
+        "prompt_id": "tp_002",
+        "prompt": "How do I identify and manage fall armyworm in maize?"
+      }
+    ],
+    "model": {
+      "name": "Llama-3.2-1B-Instruct-Q4_K_M",
+      "runtime": "llama.cpp",
+      "quantization": "GGUF Q4_K_M",
+      "parameters_estimate": "1B",
+      "packaging": "binary_bundle"
+    }
+  },
+  "environment": {
+    "measured_on": "participant_laptop",
+    "cpu_model": "AMD64 Family 21 Model 112 Stepping 0, AuthenticAMD",
+    "ram_gb": 7.5,
+    "gpu": "none",
+    "os": "Windows-10-10.0.19045-SP0"
+  },
+  "throughput": {
+    "tokens_per_second_generation": 4.65,
+    "first_token_latency_ms": 40379.81,
+    "prompt_tokens": 512,
+    "generated_tokens": 128
+  },
+  "memory": {
+    "peak_rss_mb": 1390.68,
+    "steady_state_rss_mb": 1312.45,
+    "peak_vms_mb": 837.69
+  },
+  "accuracy": [],
+  "cpu_thermal": {
+    "cpu_percent_p99": 100.0,
+    "core_temp_c_peak": null,
+    "throttled": false
+  },
+  "reproducibility": {
+    "git_commit_sha": "000000000000",
+    "docker_image_digest": "unknown",
+    "random_seed": 42
+  },
+  "model_info": {
+    "params_count": 1235814432,
+    "context_length": 131072,
+    "architecture": "llama",
+    "claimed_params_estimate": "1B",
+    "params_match": false
+  }
+}

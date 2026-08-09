@@ -1,0 +1,15 @@
+# Model weights — never in git (fetched via download_model.sh from a public URL).
+# See STRATEGY.md "Hard constraints".
+*.gguf
+*.safetensors
+*.bin
+model/
+
+# Training artifacts (regenerable)
+training/output/
+training/data/          # derived from prepare_data.py (deterministic, seed in config.json)
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,11 @@
+# Pinned for the Udutech GPU box (CUDA). CPU-only dev laptop does NOT need these.
+# prepare_data.py is stdlib-only and runs anywhere.
+torch>=2.3
+transformers>=4.46
+peft>=0.13
+trl>=0.12
+bitsandbytes>=0.44
+accelerate>=1.0
+datasets>=3.0
+# GGUF conversion (merge_and_export.py --gguf) also needs a llama.cpp checkout for
+# convert_hf_to_gguf.py, plus its own requirements: pip install -r llama.cpp/requirements.txt

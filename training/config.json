@@ -1,0 +1,46 @@
+{
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "data": {
+    "mcq": "../data/finetune/mcq/agri_mcq.jsonl",
+    "instruction": "../data/finetune/instruction/agri_instruct.jsonl",
+    "out_dir": "data",
+    "eval_holdout": 24,
+    "seed": 42
+  },
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "dropout": 0.05,
+    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  },
+  "quant_load": {
+    "load_in_4bit": true,
+    "bnb_4bit_quant_type": "nf4",
+    "bnb_4bit_compute_dtype": "bfloat16",
+    "bnb_4bit_use_double_quant": true
+  },
+  "train": {
+    "epochs": 3,
+    "per_device_batch_size": 8,
+    "grad_accum": 2,
+    "lr": 2e-4,
+    "lr_scheduler": "cosine",
+    "warmup_ratio": 0.03,
+    "weight_decay": 0.0,
+    "max_seq_len": 1024,
+    "logging_steps": 5,
+    "save_strategy": "epoch",
+    "eval_strategy": "epoch",
+    "bf16": true,
+    "seed": 42
+  },
+  "output": {
+    "adapter_dir": "output/adapter",
+    "merged_dir": "output/merged"
+  },
+  "gguf": {
+    "quant": "Q4_K_M",
+    "out_dir": "output/gguf",
+    "out_name": "agri-qwen2.5-0.5b-Q4_K_M.gguf"
+  }
+}

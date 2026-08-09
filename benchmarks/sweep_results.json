@@ -1,0 +1,32 @@
+[
+  {
+    "model": "qwen2.5-0.5b",
+    "TPS_2core": 6.93,
+    "S_perf": 46.2,
+    "peak_GB": 0.52,
+    "S_eff": 92.5,
+    "TTFT_ms": 28851.0,
+    "params": 494032768,
+    "params_ok": true
+  },
+  {
+    "model": "llama3.2-1b",
+    "TPS_2core": 4.65,
+    "S_perf": 31.0,
+    "peak_GB": 1.36,
+    "S_eff": 80.6,
+    "TTFT_ms": 40380.0,
+    "params": 1235814432,
+    "params_ok": false
+  },
+  {
+    "model": "qwen2.5-1.5b",
+    "TPS_2core": 2.54,
+    "S_perf": 16.9,
+    "peak_GB": 1.67,
+    "S_eff": 76.2,
+    "TTFT_ms": 87095.0,
+    "params": 1543714304,
+    "params_ok": true
+  }
+]
