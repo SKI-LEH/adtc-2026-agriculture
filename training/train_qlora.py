@@ -24,14 +24,23 @@ from trl import SFTConfig, SFTTrainer
 HERE = os.path.dirname(os.path.abspath(__file__))
 CFG = json.load(open(os.path.join(HERE, "config.json"), encoding="utf-8"))
 
+# bf16 needs Ampere+ (compute capability >= 8.0). On older GPUs — e.g. Colab's free
+# T4 (Turing) — bf16 is unsupported, so fall back to fp16 automatically instead of
+# crashing. Respects the config's intent but never picks a dtype the card can't run.
+_want_bf16 = bool(CFG["train"].get("bf16")) and CFG["quant_load"]["bnb_4bit_compute_dtype"] == "bfloat16"
+USE_BF16 = _want_bf16 and torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+COMPUTE_DTYPE = torch.bfloat16 if USE_BF16 else torch.float16
+
 
 def main():
+    print(f"compute dtype: {'bf16' if USE_BF16 else 'fp16'} "
+          f"(gpu: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
     base = CFG["base_model"]
     q = CFG["quant_load"]
     bnb = BitsAndBytesConfig(
         load_in_4bit=q["load_in_4bit"],
         bnb_4bit_quant_type=q["bnb_4bit_quant_type"],
-        bnb_4bit_compute_dtype=getattr(torch, q["bnb_4bit_compute_dtype"]),
+        bnb_4bit_compute_dtype=COMPUTE_DTYPE,
         bnb_4bit_use_double_quant=q["bnb_4bit_use_double_quant"],
     )
 
@@ -40,7 +49,7 @@ def main():
         tok.pad_token = tok.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(
-        base, quantization_config=bnb, torch_dtype=torch.bfloat16, device_map="auto"
+        base, quantization_config=bnb, torch_dtype=COMPUTE_DTYPE, device_map="auto"
     )
     model.config.use_cache = False
 
@@ -74,7 +83,8 @@ def main():
         logging_steps=t["logging_steps"],
         save_strategy=t["save_strategy"],
         eval_strategy=t["eval_strategy"],
-        bf16=t["bf16"],
+        bf16=USE_BF16,
+        fp16=not USE_BF16,
         seed=t["seed"],
         report_to="none",
         packing=False,
