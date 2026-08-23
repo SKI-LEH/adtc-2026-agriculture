@@ -55,9 +55,15 @@ def main():
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        base, quantization_config=bnb, torch_dtype=COMPUTE_DTYPE, device_map="auto"
-    )
+    # transformers deprecated the load-dtype kwarg torch_dtype -> dtype, and the newest
+    # releases IGNORE torch_dtype — so Qwen2.5 would load in its native bf16 and collide
+    # with fp16 AMP on the T4 (GradScaler can't unscale bf16 grads). Prefer dtype, fall
+    # back to torch_dtype on older transformers.
+    _load = dict(quantization_config=bnb, device_map="auto")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(base, dtype=COMPUTE_DTYPE, **_load)
+    except TypeError:
+        model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=COMPUTE_DTYPE, **_load)
     model.config.use_cache = False
 
     lora = LoraConfig(
