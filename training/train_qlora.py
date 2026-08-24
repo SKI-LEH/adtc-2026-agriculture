@@ -18,7 +18,7 @@ import json, os
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import LoraConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTConfig, SFTTrainer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -65,6 +65,7 @@ def main():
     except TypeError:
         model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=COMPUTE_DTYPE, **_load)
     model.config.use_cache = False
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
 
     lora = LoraConfig(
         r=CFG["lora"]["r"],
@@ -74,6 +75,21 @@ def main():
         bias="none",
         task_type="CAUSAL_LM",
     )
+    model = get_peft_model(model, lora)
+    # QLoRA on an fp16-only GPU (T4): the base stays 4-bit + frozen, but the TRAINABLE
+    # LoRA tensors MUST be fp32. Trainer runs an fp16 GradScaler (fp16=True) and its
+    # unscale step has no half/bf16 kernel ("_amp_foreach_non_finite_check_and_unscale
+    # _cuda not implemented for BFloat16/Half") — the master weights it unscales have to
+    # be fp32. PEFT can create the LoRA tensors in the base compute dtype, so force every
+    # trainable tensor to fp32 here. This is the canonical QLoRA-on-fp16 recipe.
+    _frozen = {str(p.dtype).replace("torch.", "") for p in model.parameters() if not p.requires_grad}
+    _cast = 0
+    for p in model.parameters():
+        if p.requires_grad and p.dtype != torch.float32:
+            p.data = p.data.float()
+            _cast += 1
+    print(f"peft ready: base frozen in {sorted(_frozen)}, cast {_cast} trainable tensors -> fp32")
+    model.print_trainable_parameters()
 
     data_dir = os.path.join(HERE, CFG["data"]["out_dir"])
     ds = load_dataset(
@@ -129,7 +145,6 @@ def main():
         args=sft,
         train_dataset=ds["train"],
         eval_dataset=ds["eval"],
-        peft_config=lora,
         processing_class=tok,
     )
     trainer.train()
