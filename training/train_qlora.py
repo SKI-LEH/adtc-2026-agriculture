@@ -36,11 +36,23 @@ def _hw_bf16():
 
 _want_bf16 = bool(CFG["train"].get("bf16")) and CFG["quant_load"]["bnb_4bit_compute_dtype"] == "bfloat16"
 USE_BF16 = _want_bf16 and _hw_bf16()
-COMPUTE_DTYPE = torch.bfloat16 if USE_BF16 else torch.float16
+# Precision policy:
+#  - Ampere+ (cc>=8): bf16. No GradScaler needed (bf16 has the dynamic range).
+#  - T4/older (no hw bf16): DO NOT use fp16 AMP. Its GradScaler.unscale_ step calls
+#    torch._amp_foreach_non_finite_check_and_unscale_, which has NO half/bf16 CUDA kernel
+#    and hard-crashes at step 0 ("not implemented for 'BFloat16'"). Casting the adapter to
+#    fp32 doesn't help — the scaler exists at all only because fp16 AMP is on. So on the T4
+#    we train the (tiny) LoRA adapter in plain fp32 with NO mixed precision: no autocast,
+#    no scaler, that function is never called. The frozen base stays 4-bit, so this barely
+#    moves memory, and a 0.5B / 280-example run is still only minutes.
+USE_FP16 = False
+COMPUTE_DTYPE = torch.bfloat16 if USE_BF16 else torch.float32
 
 
 def main():
-    print(f"compute dtype: {'bf16' if USE_BF16 else 'fp16'} "
+    _prec = "bf16" if USE_BF16 else ("fp16-amp" if USE_FP16 else "fp32 (no AMP)")
+    print("=== train_qlora build: T4-safe fp32 fallback ===")
+    print(f"precision: {_prec} | compute dtype: {COMPUTE_DTYPE} "
           f"(gpu: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
     base = CFG["base_model"]
     q = CFG["quant_load"]
@@ -118,7 +130,7 @@ def main():
         "save_strategy": t["save_strategy"],
         "eval_strategy": t["eval_strategy"],
         "bf16": USE_BF16,
-        "fp16": not USE_BF16,
+        "fp16": USE_FP16,
         "seed": t["seed"],
         "report_to": "none",
         "packing": False,
